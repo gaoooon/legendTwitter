@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import { emailValidation, passwordValidation } from "@/utils/validation";
 import { LoginFormType } from "@/types/formType";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -9,12 +9,17 @@ import { auth } from "@/firebase/config";
 import { useNavigate } from "react-router";
 import { FirebaseError } from "firebase/app";
 import { GoogleLoginButton } from "@/components";
+import * as S from "./style";
+import { Logo } from "@/assets/svgs";
 
 const LoginPage = () => {
   const [isLoading, setLoading] = useState(false);
-  const { error } = toast;
   const navigate = useNavigate();
-  const { register, handleSubmit } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     defaultValues: { email: "", password: "" },
   });
 
@@ -24,18 +29,12 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await signInWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
-
-      console.log(response);
+      await signInWithEmailAndPassword(auth, data.email, data.password);
 
       navigate("/");
     } catch (e) {
       if (e instanceof FirebaseError) {
-        error(e.message);
+        toast.error(e.message);
       } else {
         new Error("ERROR" + e);
       }
@@ -44,33 +43,41 @@ const LoginPage = () => {
     }
   };
 
-  const onError: SubmitErrorHandler<LoginFormType> = ({ email, password }) => {
-    if (email) error(`email : ${email.message}`);
-
-    if (password) error(`password : ${password.message}`);
-  };
-
   return (
-    <div>
-      <h1>로그인 폼</h1>
-      <form onSubmit={handleSubmit(onSubmit, onError)}>
-        <input
-          {...register("email", emailValidation)} //
-          placeholder="이메일"
-        />
-        <input
-          {...register("password", passwordValidation)} //
-          placeholder="비밀번호"
-        />
-        <input
-          type="submit"
-          value={isLoading ? "Loading..." : "Login Account"}
-        />
-      </form>
-      <GoogleLoginButton />
+    <S.Container>
+      <S.Wrapper>
+        <Logo />
+        <S.LoginForm onSubmit={handleSubmit(onSubmit)}>
+          <S.Input
+            {...register("email", emailValidation)} //
+            placeholder="email"
+          />
+          <S.Input
+            {...register("password", passwordValidation)} //
+            placeholder="password"
+            type="password"
+          />
+          <S.LoginButton
+            type="submit"
+            value={isLoading ? "Loading..." : "Login"}
+          />
+          <S.ErrorMessageBox>
+            {errors.email?.message && (
+              <S.ErrorMessage>{errors.email?.message}</S.ErrorMessage>
+            )}
+            {errors.password?.message && (
+              <S.ErrorMessage>{errors.password?.message}</S.ErrorMessage>
+            )}
+          </S.ErrorMessageBox>
+          <S.ButtonWrapper>
+            <GoogleLoginButton />
+          </S.ButtonWrapper>
+        </S.LoginForm>
+        <S.SignupLink to="/signup">Signup for an account</S.SignupLink>
+      </S.Wrapper>
 
       <ToastContainer />
-    </div>
+    </S.Container>
   );
 };
 
